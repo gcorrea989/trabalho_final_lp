@@ -15,12 +15,14 @@ def localizar_arquivos(pasta_dados: Path):
 
     for caminho in pasta_dados.rglob("*"):
         if caminho.is_file() and caminho.suffix.lower() in FORMATOS:
-            if "06_dados_consolidados" not in caminho.parts:
+            pastas_ignoradas = {"06_dados_consolidados", "07_dados_tratados"}
+            if not pastas_ignoradas.intersection(caminho.parts):
                 arquivos.append(caminho)
 
     return sorted(arquivos)
 
-def ler_arquivos(caminho: Path):
+
+def ler_arquivos(caminho: Path) -> pd.DataFrame:
     # lê de acordo com o formato do arquivo
     extensao = caminho.suffix.lower()
 
@@ -31,6 +33,7 @@ def ler_arquivos(caminho: Path):
         return pd.read_csv(caminho, sep="|")
 
     raise ValueError(f"Formato não suportado para o arquivo: {caminho}")
+
 
 def consolidar_dados(pasta_dados: Path, pasta_saida: Path, nome_arquivo="hotel_reservas.json"):
     # lê todos os arquivos e une os dados por ID. No final, salva um json na pasta destino
