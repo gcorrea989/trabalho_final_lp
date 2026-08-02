@@ -28,4 +28,21 @@ def carregar_base():
 
     return pd.read_json(ARQUIVO)
 
+def preparar_dados(df):
 
+    df["data_chegada"] = pd.to_datetime(
+        dict(
+            year=df["arrival_year"],
+            month=df["arrival_month"],
+            day=df["arrival_date"]
+        ),
+        errors="coerce"
+    )
+
+    df = df.sort_values("data_chegada")
+
+    df["Periodo"] = df["data_chegada"].dt.to_period("M")
+
+    df["MesAno"] = df["Periodo"].dt.strftime("%m/%Y")
+
+    return df
