@@ -2,6 +2,7 @@ from pathlib import Path
 
 from extracao import consolidar_dados
 from tratamento import tratar_dados
+from visualizacao import main as dashboard
 
 PROJETO_DIR = Path(__file__).resolve().parent
 DADOS_DIR = PROJETO_DIR / "dados_separados"
@@ -37,3 +38,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    dashboard()
