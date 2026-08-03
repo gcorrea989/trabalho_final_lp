@@ -1,13 +1,9 @@
 from pathlib import Path
-
 import pandas as pd
-
 import streamlit as st
 
-import matplotlib.pyplot as plt
-import seaborn as sns
+from graficos import grafico_canal_reserva, grafico_cancelamento_familias, grafico_distribuicao_precos, grafico_media_plano, grafico_reservas_mes, grafico_reservas_tipo_quarto, grafico_cancelamentos_quarto
 
-import plotly.express as px
 
 BASE = Path(__file__).resolve().parent
 
@@ -19,7 +15,7 @@ ARQUIVO = (
 )
 
 
-# ==========================================================
+# =========================================================
 # Função para carregar a base de dados
 # =========================================================
 
@@ -48,135 +44,120 @@ def preparar_dados(df):
     return df
 
 # ==========================================
-# GRÁFICO RESERVAS - Seaborn
+# Sidebar e Métricas
 # ==========================================
 
-def grafico_reservas(df):
+def aplicar_filtros(df):
 
-    dados = (
+    st.sidebar.header("Filtros")
 
-        df
+    anos = sorted(df["arrival_year"].unique())
 
-        .groupby(
-            [
-                "Periodo",
-                "categoria_preco"
-            ]
-        )
-
-        .size()
-
-        .reset_index(name="Reservas")
-
+    anos_selecionados = st.sidebar.multiselect(
+        "Ano",
+        options=anos,
+        default=anos
     )
 
-    dados["MesAno"] = (
-        dados["Periodo"]
-        .dt
-        .strftime("%m/%Y")
+    quartos = sorted(df["room_type_reserved"].unique())
+
+    quartos_selecionados = st.sidebar.multiselect(
+        "Tipo de quarto",
+        options=quartos,
+        default=quartos
     )
 
-    fig, ax = plt.subplots(
-        figsize=(14,6)
+    planos = sorted(df["type_of_meal_plan"].unique())
+
+    planos_selecionados = st.sidebar.multiselect(
+        "Plano de alimentação",
+        options=planos,
+        default=planos
     )
 
-    sns.lineplot(
+    canais = sorted(df["market_segment_type"].unique())
 
-        data=dados,
-
-        x="MesAno",
-
-        y="Reservas",
-
-        hue="categoria_preco",
-
-        marker="o",
-
-        linewidth=2,
-
-        ax=ax
-
+    canais_selecionados = st.sidebar.multiselect(
+        "Canal de reserva",
+        options=canais,
+        default=canais
     )
 
-    ax.set_title(
-        "Reservas por categoria de preço"
+    categorias = sorted(df["categoria_preco"].unique())
+
+    categorias_selecionadas = st.sidebar.multiselect(
+        "Categoria de preço",
+        options=categorias,
+        default=categorias
     )
 
-    ax.set_xlabel("Mês/Ano")
-
-    ax.set_ylabel("Quantidade")
-
-    plt.xticks(rotation=45)
-
-    plt.tight_layout()
-
-    st.pyplot(fig)
+    minimo_criancas = st.sidebar.slider(
+        "Quantidade mínima de crianças",
+        min_value=0,
+        max_value=int(df["no_of_children"].max()),
+        value=0
+    )
 
 
-# ==========================================
-# GRÁFICO CANCELAMENTOS - Plotly
-# ==========================================
-
-def grafico_cancelamentos(df):
-
-    canceladas = df[
-        df["booking_status"] == "Canceled"
+    df_filtrado = df[
+        (df["arrival_year"].isin(anos_selecionados))
+        &
+        (df["room_type_reserved"].isin(quartos_selecionados))
+        &
+        (df["type_of_meal_plan"].isin(planos_selecionados))
+        &
+        (df["market_segment_type"].isin(canais_selecionados))
+        &
+        (df["categoria_preco"].isin(categorias_selecionadas))
+        &
+        (df["no_of_children"] >= minimo_criancas)
     ]
 
-    dados = (
+    return df_filtrado
 
-        canceladas
+def exibir_metricas(df):
 
-        .groupby(
-            [
-                "Periodo",
-                "categoria_preco"
-            ]
+    total_reservas = len(df)
+
+    total_cancelamentos = len(
+        df[
+            df["booking_status"] == "Canceled"
+        ]
+    )
+
+    diaria_media = df["avg_price_per_room"].mean()
+
+    taxa_cancelamento = (
+        (total_cancelamentos / total_reservas) * 100
+        if total_reservas > 0
+        else 0
+    )
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            label="Reservas",
+            value=f"{total_reservas:,}".replace(",", ".")
         )
 
-        .size()
+    with col2:
+        st.metric(
+            label="Cancelamentos",
+            value=f"{total_cancelamentos:,}".replace(",", ".")
+        )
 
-        .reset_index(name="Cancelamentos")
+    with col3:
+        st.metric(
+            label="Diária média",
+            value=f"R$ {diaria_media:.2f}"
+        )
 
-    )
-
-    dados["MesAno"] = (
-        dados["Periodo"]
-        .dt
-        .strftime("%m/%Y")
-    )
-
-    fig = px.line(
-
-        dados,
-
-        x="MesAno",
-
-        y="Cancelamentos",
-
-        color="categoria_preco",
-
-        markers=True,
-
-        title="Cancelamentos por categoria de preço"
-
-    )
-
-    fig.update_layout(
-
-        xaxis_title="Mês/Ano",
-
-        yaxis_title="Quantidade",
-
-        legend_title="Categoria"
-
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
+    with col4:
+        st.metric(
+            label="Taxa de cancelamento",
+            value=f"{taxa_cancelamento:.1f}%"
+        )
 
 # ==========================================
 # MAIN
@@ -204,18 +185,38 @@ def main():
 
     df = preparar_dados(df)
 
+    df = aplicar_filtros(df)
+
+    exibir_metricas(df)    
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        grafico_reservas_tipo_quarto(df)
+
+    with col2:
+        grafico_distribuicao_precos(df)
+
     st.divider()
 
-    st.subheader(
-        "Reservas por categoria de preço"
-    )
+    col1, col2 = st.columns(2)
 
-    grafico_reservas(df)
+    with col1:
+        grafico_cancelamentos_quarto(df)
+
+    with col2:
+        grafico_media_plano(df)
 
     st.divider()
 
-    st.subheader(
-        "Cancelamentos por categoria de preço"
-    )
+    col1, col2 = st.columns(2)
 
-    grafico_cancelamentos(df)
+    with col1:
+        grafico_canal_reserva(df)
+
+    with col2:
+        grafico_reservas_mes(df)
+
+    st.divider()
+
+    grafico_cancelamento_familias(df)
