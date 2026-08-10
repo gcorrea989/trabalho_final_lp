@@ -20,9 +20,9 @@ ARQUIVO = (
 # =========================================================
 
 @st.cache_data
-def carregar_base():
+def carregar_base(arquivo):
 
-    return pd.read_json(ARQUIVO)
+    return pd.read_json(arquivo)
 
 def preparar_dados(df):
 
@@ -91,13 +91,6 @@ def aplicar_filtros(df):
         default=categorias
     )
 
-    minimo_criancas = st.sidebar.slider(
-        "Quantidade mínima de crianças",
-        min_value=0,
-        max_value=int(df["no_of_children"].max()),
-        value=0
-    )
-
 
     df_filtrado = df[
         (df["arrival_year"].isin(anos_selecionados))
@@ -109,8 +102,6 @@ def aplicar_filtros(df):
         (df["market_segment_type"].isin(canais_selecionados))
         &
         (df["categoria_preco"].isin(categorias_selecionadas))
-        &
-        (df["no_of_children"] >= minimo_criancas)
     ]
 
     return df_filtrado
@@ -181,7 +172,7 @@ def main():
         "Análise das reservas utilizando Streamlit, Seaborn e Plotly."
     )
 
-    df = carregar_base()
+    df = carregar_base(ARQUIVO)
 
     df = preparar_dados(df)
 
@@ -216,7 +207,3 @@ def main():
 
     with col2:
         grafico_reservas_mes(df)
-
-    st.divider()
-
-    grafico_cancelamento_familias(df)
