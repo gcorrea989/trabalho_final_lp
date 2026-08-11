@@ -354,8 +354,9 @@ def grafico_cancelamento_antecedencia(df):
 
     dados["faixa_antecedencia"] = pd.cut(
         dados["lead_time"],
-        bins=[-1, 30, 60, 90, 180, float("inf")],
+        bins=[-1, 7, 30, 60, 90, 180, float("inf")],
         labels=[
+            "0-7 dias",
             "Até 30 dias",
             "31–60 dias",
             "61–90 dias",
