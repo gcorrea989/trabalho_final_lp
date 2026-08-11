@@ -26,7 +26,8 @@ def main():
         # Etapa 02
         arquivo_tratado, resumo_quartos = tratar_dados(
             caminho_entrada=arquivo_saida,
-            pasta_saida=TRATADOS_DIR
+            pasta_saida=TRATADOS_DIR,
+            nome_arquivo=""
         )
 
         print(f" 1 - Resumo por tipo de quarto:\n")
